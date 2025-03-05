@@ -1,0 +1,162 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mysql
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-secret
+  namespace: mysql
+type: Opaque
+data:
+  mysql-root-password: cGFzc3dvcmQ=   # Base64-encoded 'password'
+  mysql-repl-password: cmVwbF9wYXNz  # Base64-encoded 'repl_pass'
+  mysql-user: dXNlcg==               # Base64-encoded 'user'
+  mysql-password: dXNlcl9wYXNzd29yZA== # Base64-encoded 'user_password'
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: mysql
+spec:
+  clusterIP: None
+  selector:
+    app: mysql
+  ports:
+  - protocol: TCP
+    port: 3306
+    targetPort: 3306
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql
+  namespace: mysql
+spec:
+  serviceName: mysql
+  replicas: 3  # 3 nodes for Group Replication
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      initContainers:
+      - name: init-mysql
+        image: mysql:8.0
+        command:
+          - "/bin/sh"
+          - "-c"
+          - >
+            set -e;
+            echo "Initializing MySQL data directory...";
+            if [ ! -d "/var/lib/mysql/mysql" ]; then
+              mysqld --initialize-insecure;
+            fi
+        volumeMounts:
+        - name: mysql-data
+          mountPath: /var/lib/mysql
+      
+      containers:
+      - name: mysql
+        image: mysql:8.0
+        ports:
+        - containerPort: 3306
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: mysql-root-password
+        - name: MYSQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: mysql-user
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: mysql-password
+        - name: MYSQL_REPL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: mysql-repl-password
+        - name: MYSQL_GROUP_REPLICATION_LOCAL_ADDRESS
+          value: "$(MY_POD_NAME).mysql:33061"
+        - name: MYSQL_GROUP_REPLICATION_GROUP_SEEDS
+          value: "mysql-0.mysql:33061,mysql-1.mysql:33061,mysql-2.mysql:33061"
+        - name: MY_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        lifecycle:
+          postStart:
+            exec:
+              command:
+                - "/bin/sh"
+                - "-c"
+                - |
+                  echo "Configuring MySQL Group Replication..."
+                  mysql -uroot -p$MYSQL_ROOT_PASSWORD -e "
+                  SET SQL_LOG_BIN=0;
+                  CREATE USER IF NOT EXISTS 'repl'@'%' IDENTIFIED WITH 'caching_sha2_password' BY '$MYSQL_REPL_PASSWORD';
+                  GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';
+                  CHANGE REPLICATION SOURCE TO SOURCE_USER='repl', SOURCE_PASSWORD='$MYSQL_REPL_PASSWORD', SOURCE_AUTO_POSITION=1;
+                  SET GLOBAL group_replication_bootstrap_group=1;
+                  START GROUP_REPLICATION;
+                  SET GLOBAL group_replication_bootstrap_group=0;
+                  "
+        volumeMounts:
+        - name: mysql-data
+          mountPath: /var/lib/mysql
+
+      volumes:
+      - name: mysql-data
+        persistentVolumeClaim:
+          claimName: mysql-pvc-$(MY_POD_NAME)
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc-mysql-0
+  namespace: mysql
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: ocs-storagecluster-ceph-rbd  # Adjust based on your ODF setup
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc-mysql-1
+  namespace: mysql
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: ocs-storagecluster-ceph-rbd
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc-mysql-2
+  namespace: mysql
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: ocs-storagecluster-ceph-rbd
+
