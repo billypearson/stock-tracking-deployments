@@ -91,6 +91,8 @@ spec:
           volumeMounts:
             - name: mysql-data
               mountPath: /var/lib/mysql
+            - name: mysql-config
+              mountPath: /etc/mysql
           readinessProbe:
           exec:
             command: ["mysqladmin", "ping", "-uroot", "-p$MYSQL_ROOT_PASSWORD"]
@@ -115,3 +117,10 @@ spec:
         resources:
           requests:
             storage: 10Gi
+    - metadata:
+        name: mysql-config
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 100Mi
