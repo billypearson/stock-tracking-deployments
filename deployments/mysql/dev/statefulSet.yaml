@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: mysql
-  namespace: mysql
+  namespace: mysql-dev
 spec:
   serviceName: mysql
   replicas: 3 # 3 nodes for Group Replication

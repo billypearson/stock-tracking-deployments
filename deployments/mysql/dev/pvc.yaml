@@ -2,37 +2,37 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: mysql-pvc-mysql-0
-  namespace: mysql
+  namespace: mysql-dev
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 10Gi
+      storage: 20Gi
   storageClassName: ocs-storagecluster-ceph-rbd # Adjust based on your ODF setup
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: mysql-pvc-mysql-1
-  namespace: mysql
+  namespace: mysql-dev
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 10Gi
+      storage: 20Gi
   storageClassName: ocs-storagecluster-ceph-rbd
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: mysql-pvc-mysql-2
-  namespace: mysql
+  namespace: mysql-dev
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 10Gi
+      storage: 20Gi
   storageClassName: ocs-storagecluster-ceph-rbd
