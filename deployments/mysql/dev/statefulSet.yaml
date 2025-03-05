@@ -87,6 +87,7 @@ spec:
                     START GROUP_REPLICATION;
                     SET GLOBAL group_replication_bootstrap_group=0;
                     "
+                    wait
           volumeMounts:
             - name: mysql-data
               mountPath: /var/lib/mysql
@@ -98,7 +99,7 @@ spec:
           timeoutSeconds: 5
           failureThreshold: 10
 
-        livenessProbe:
+          livenessProbe:
           exec:
             command: ["mysqladmin", "ping", "-uroot", "-p$MYSQL_ROOT_PASSWORD"]
           initialDelaySeconds: 30
