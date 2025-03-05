@@ -1,0 +1,6 @@
+bases:
+  - ../../base
+
+patchesStrategicMerge:
+  - namespace-patch.yaml
+  - statefulset-patch.yaml
