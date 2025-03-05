@@ -71,6 +71,12 @@ spec:
                   - "/bin/sh"
                   - "-c"
                   - |
+                    echo "Waiting for MySQL to start..."
+                    until mysqladmin ping -uroot -p$MYSQL_ROOT_PASSWORD --silent; do
+                    sleep 5
+                    echo "MySQL is not ready yet, retrying..."
+                    done         
+
                     echo "Configuring MySQL Group Replication..."
                     mysql -uroot -p$MYSQL_ROOT_PASSWORD -e "
                     SET SQL_LOG_BIN=0;
