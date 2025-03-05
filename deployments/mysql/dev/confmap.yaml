@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-config
+  namespace: mysql-dev
+data:
+  group.conf.template: |
+    [mysqld]
+    disabled_storage_engines="MyISAM,BLACKHOLE,FEDERATED,ARCHIVE,MEMORY"
+    gtid_mode = ON
+    enforce_gtid_consistency = ON
+    master_info_repository = TABLE
+    relay_log_info_repository = TABLE
+    binlog_checksum = NONE
+    log_replica_updates = ON
+    log_bin = binlog
+    binlog_format = ROW
+    transaction_write_set_extraction = XXHASH64
+    loose-group_replication_bootstrap_group = OFF
+    loose-group_replication_start_on_boot = OFF
+    loose-group_replication_ssl_mode = REQUIRED
+    loose-group_replication_recovery_use_ssl = 1
+    
+    loose-group_replication_group_name = "${UUID}"
+    loose-group_replication_ip_allowlist = "mysql-0,mysql-1,mysql-2"
+    loose-group_replication_group_seeds = "mysql-0:33061,mysql-1:33061,mysql-2:33061"
+    
+    loose-group_replication_single_primary_mode = OFF
+    loose-group_replication_enforce_update_everywhere_checks = ON
+    
+    bind-address = "0.0.0.0"
+    server_id = "${POD_ID}"
+    report_host = "${HOSTNAME}"
+    loose-group_replication_local_address = "${HOSTNAME}:33061"
+

@@ -22,17 +22,27 @@ spec:
             - "-c"
             - >
               set -e;
-              echo "Initializing MySQL data directory...";
               if [ ! -d "/var/lib/mysql/mysql" ]; then
+                echo "Initializing MySQL data directory...";
                 mysqld --initialize-insecure;
-              fi
+              fi;
+              set HOSTNAME=`cat /etc/hostname`
+              set ID=`echo $HOSTNAME | cut -d - -f2`
+              envsubst < /etc/mysql/conf.d/group.conf.template > /etc/mysql/conf.d/group.yaml
           volumeMounts:
             - name: mysql-data
               mountPath: /var/lib/mysql
-
+          volumes:
+            - name: mysql-config-volume
+              configMap:
+              name: mysql-config
       containers:
         - name: mysql
           image: mysql:8.0
+          volumeMounts:
+            - name: mysql-config-volume
+              mountPath: /etc/mysql/group.conf.template
+              subPath: group.conf.template
           ports:
             - containerPort: 3306
           env:
@@ -91,8 +101,10 @@ spec:
           volumeMounts:
             - name: mysql-data
               mountPath: /var/lib/mysql
-            - name: mysql-config
-              mountPath: /etc/mysql
+          volumes:
+            - name: mysql-config-volume
+              configMap:
+              name: mysql-config
           readinessProbe:
           exec:
             command: ["mysqladmin", "ping", "-uroot", "-p$MYSQL_ROOT_PASSWORD"]
@@ -117,10 +129,3 @@ spec:
         resources:
           requests:
             storage: 10Gi
-    - metadata:
-        name: mysql-config
-      spec:
-        accessModes: ["ReadWriteOnce"]
-        resources:
-          requests:
-            storage: 100Mi
